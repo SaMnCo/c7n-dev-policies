@@ -1,0 +1,7 @@
+.python-version
+pyproject.toml
+deploy-key
+deploy-key.pub
+gcp-dev/*
+aws-dev/*
+azure-dev/*
