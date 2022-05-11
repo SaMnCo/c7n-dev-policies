@@ -1,0 +1,102 @@
+vars:
+
+  deprecated-k8s-version: &deprecated-k8s-version
+    type: value
+    key: currentMasterVersion
+    op: eq
+    value: '1.21.10-gke.2000'
+
+
+
+
+policies:
+- name: gcp-gke-check-version
+  resource: gcp.gke-cluster
+  metadata:
+    category: [security/deprecated]
+    creator: Stacklet
+    severity: medium
+    recommended_actions:
+        remediation:
+          - name: GCP Docs
+            description: |
+              Upgrade GKE K8s Clusters that are running of an old version 
+            type: link
+            content: https://cloud.google.com/kubernetes-engine/docs/how-to/upgrading-a-cluster
+  description: |
+    Identify GKE Clusters that are not running the latest version of K8s.
+  filters:
+    - *deprecated-k8s-version
+
+
+- name: gcp-gke-not-running
+  resource: gcp.gke-cluster
+  metadata:
+    category: [cost/stale-data]
+    creator: Stacklet
+    severity: low
+    recommended_actions:
+        remediation:
+          - name: GCP Docs
+            description: |
+              Delete GKE K8s Clusters that are not running to save money
+            type: link
+            content: https://cloud.google.com/kubernetes-engine/docs/how-to/deleting-a-cluster
+  description: |
+    Identify GKE Clusters that are not running.
+  filters:
+    - type: value
+      key: status
+      op: ne
+      value: RUNNING
+
+
+- name: gcp-instances-publicly-accessible
+  resource: gcp.instance
+  metadata:
+    category: [security/public]
+    creator: Stacklet
+    severity: medium
+  description: |
+    Identify publicly accessible Compute Instances.
+  filters:
+    - type: effective-firewall
+      key: firewalls[*].sourceRanges[]
+      op: contains
+      value: "0.0.0.0/0"
+
+- name: s6t-cost-underutilized-gcp-old-instances
+  resource: gcp.instance
+  metadata:
+    category: [cost/underutilized]
+    creator: Stacklet
+    severity: low
+    recommended_actions:
+        remediation:
+          - name: GCP Docs
+            description: |
+              Review and terminate instances that are temporarily or no
+              longer in use.
+            type: link
+            content: https://cloud.google.com/sdk/gcloud/reference/compute/instances/delete?hl=en
+          - name: Policy Action
+            description: |
+              Terminate instances identified by the policy filters.
+            type: link
+            content: https://cloudcustodian.io/docs/gcp/resources/instance.html#gcp-instance-actions-delete
+  description: |
+    Identify Instances older than 365 days. These instances should be
+    investigated and deleted if they are no longer in use.
+  filters:
+    - type: value
+      value_type: age
+      key: creationTimestamp
+      value: 1
+      op: greater-than
+    - type: metrics
+      name: compute.googleapis.com/instance/cpu/utilization
+      aligner: ALIGN_MAX
+      days: 3
+      value: 10
+      missing-value: 0
+      op: lt
