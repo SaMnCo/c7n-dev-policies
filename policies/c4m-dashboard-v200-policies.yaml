@@ -1,7 +1,7 @@
 policies:
 #1 Identity and Access Management
 #1.1 Ensure no root user account access key exists (Automated)
-- name: c4m-dashboard-v200-aws-account-root-access-keys-present
+- name: c4m-v200-aws-account-root-access-keys-present
   resource: aws.account
   conditions:
     - region: us-east-1
@@ -41,7 +41,7 @@ policies:
         value: <root_account>
 
 #1.2 Ensure MFA is enabled for the "root user" account (Automated)
-- name: c4m-dashboard-v200-aws-account-iam-root-user-missing-mfa
+- name: c4m-v200-aws-account-iam-root-user-missing-mfa
   resource: aws.account
   conditions:
     - region: us-east-1
@@ -76,7 +76,7 @@ policies:
 #2 Storage
 #2.1 Simple Storage Service (S3)
 #2.1.1 Ensure all S3 buckets employ encryption-at-rest (Manual)
-- name: c4m-dashboard-v200-aws-s3-enable-default-bucket-encryption
+- name: c4m-v200-aws-s3-enable-default-bucket-encryption
   conditions:
     - region: us-east-1
   resource: aws.s3
@@ -110,7 +110,7 @@ policies:
       state: False
 
 #2.1.2 Ensure S3 Bucket Policy allows HTTPS requests (Manual)
-- name: c4m-dashboard-v200-aws-s3-bucket-deny-http-requests
+- name: c4m-v200-aws-s3-bucket-deny-http-requests
   conditions:
     - region: us-east-1
   resource: aws.s3
@@ -152,7 +152,7 @@ policies:
 
 #2.2 Elastic Compute Cloud (EC2)
 #2.2.1 Ensure EBS volume encryption is enabled (Manual)
-- name: c4m-dashboard-v200-aws-ebs-encrypted
+- name: c4m-v200-aws-ebs-encrypted
   resource: aws.ebs
   metadata:
     category: [security/encryption]
@@ -187,7 +187,7 @@ policies:
 
 #3 Logging
 #3.1 Ensure CloudTrail is enabled in all regions (Automated)
-- name: c4m-dashboard-v200-aws-cloudtrail-multi-region
+- name: c4m-v200-aws-cloudtrail-multi-region
   resource: aws.cloudtrail
   metadata:
     category: [security/logging]
@@ -219,7 +219,7 @@ policies:
       - IsMultiRegionTrail: false
 
 #3.2 Ensure CloudTrail log file validation is enabled (Automated)
-- name: c4m-dashboard-v200-aws-cloudtrail-log-file-validation
+- name: c4m-v200-aws-cloudtrail-log-file-validation
   resource: aws.cloudtrail
   metadata:
     category: [security/logging]
