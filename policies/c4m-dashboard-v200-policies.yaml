@@ -1,0 +1,251 @@
+policies:
+#1 Identity and Access Management
+#1.1 Ensure no root user account access key exists (Automated)
+- name: c4m-dashboard-v200-aws-account-root-access-keys-present
+  resource: aws.account
+  conditions:
+    - region: us-east-1
+  metadata:
+    category: [security/access-control]
+    compliance:
+      - type: C4m-Dashboard
+        version: 2.0.0
+        control-mappings: ['1.1']
+    creator: ACME.Inc
+    severity: medium
+    recommended_actions:
+        remediation:
+          - name: AWS Docs
+            description: |
+              Review and delete root user access keys.
+            type: link
+            content: https://docs.aws.amazon.com/IAM/latest/UserGuide/id_root-user.html
+    long-description: |
+        It is recommended that all root user account access keys be removed
+        after account setup. The root user is the most privileged account user
+        so removing the keys helps limit the chances of the account becoming
+        compromised and encourages using least privileged roles for access. Root
+        access keys can only be removed by the root user.
+  description: |
+    This policy will identify root users which have access keys present. Per AWS
+    security best practices, root access keys should be removed after account
+    setup to prevent unauthorized access. If an unauthorized user was to gain
+    access to the root access keys, they would have full control over the
+    account.
+  filters:
+      - type: credential
+        key: access_keys.active
+        value: true
+      - type: credential
+        key: user
+        value: <root_account>
+
+#1.2 Ensure MFA is enabled for the "root user" account (Automated)
+- name: c4m-dashboard-v200-aws-account-iam-root-user-missing-mfa
+  resource: aws.account
+  conditions:
+    - region: us-east-1
+  metadata:
+    category: [security/access-control]
+    compliance:
+      - type: C4m-Dashboard
+        version: 2.0.0
+        control-mappings: ['1.2']
+    creator: ACME.Inc
+    severity: medium
+    recommended_actions:
+        remediation:
+          - name: AWS Docs
+            description: |
+              Enable virtual MFA for root user.
+            type: link
+            content: https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_mfa_enable_virtual.html#enable-virt-mfa-for-root
+    long-description: |
+      This policy will identify root users which are missing an MFA device. Per
+      security best practices, MFA devices should be used in order to provide an
+      additional layer of security and to help prevent unauthorized access and
+      account logins.
+  description: |
+      IAM root users should be using an MFA device for all logins. Any root
+      users without MFA devices will be identified.
+  filters:
+    - type: credential
+      key: mfa_active
+      value: false
+
+#2 Storage
+#2.1 Simple Storage Service (S3)
+#2.1.1 Ensure all S3 buckets employ encryption-at-rest (Manual)
+- name: c4m-dashboard-v200-aws-s3-enable-default-bucket-encryption
+  conditions:
+    - region: us-east-1
+  resource: aws.s3
+  metadata:
+    category: [security/encryption]
+    compliance:
+      - type: C4m-Dashboard
+        version: 2.0.0
+        control-mappings: ['2.1.1']
+    creator: ACME.Inc
+    severity: high
+    recommended_actions:
+        remediation:
+          - name: AWS Docs
+            description: |
+              Review and enable S3 bucket encryption.
+            type: link
+            content: https://docs.aws.amazon.com/AmazonS3/latest/userguide/default-bucket-encryption.html
+          - name: Policy Action
+            description: |
+              Enables S3 bucket encryption for all buckets identified by the
+              policy filters.
+            type: link
+            content: https://cloudcustodian.io/docs/aws/resources/s3.html#aws-s3-actions-set-bucket-encryption
+  description: |
+      This policy will identify S3 buckets which are not encrypted. All S3
+      buckets should be encrypted at rest per AWS security best practices.
+      Impacted S3 bucket users should update their buckets encryption.
+  filters:
+    - type: bucket-encryption
+      state: False
+
+#2.1.2 Ensure S3 Bucket Policy allows HTTPS requests (Manual)
+- name: c4m-dashboard-v200-aws-s3-bucket-deny-http-requests
+  conditions:
+    - region: us-east-1
+  resource: aws.s3
+  metadata:
+    category: [security/access-control]
+    compliance:
+      - type: C4m-Dashboard
+        version: 2.0.0
+        control-mappings: ['2.1.2']
+    creator: ACME.Inc
+    severity: medium
+    recommended_actions:
+        remediation:
+          - name: AWS Docs
+            description: |
+              Review and set an S3 bucket policy to block insecure requests.
+            type: link
+            content: https://aws.amazon.com/premiumsupport/knowledge-center/s3-bucket-policy-for-config-rule/
+          - name: Policy Action
+            description: |
+              Adds a specified bucket policy to all S3 buckets identified by the
+              policies filters.
+            type: link
+            content: https://cloudcustodian.io/docs/aws/resources/s3.html#aws-s3-actions-set-statements
+  description: |
+      This policy will identify S3 buckets which are not denying HTTP requests.
+      HTTP requests should be denied via S3 bucket policy as they are not secure
+      or authenticated. Only HTTPS requests should be allowed on S3 buckets to
+      meet AWS security best practices.
+  filters:
+    - not:
+       - type: has-statement
+         statements:
+            - Effect: Deny
+              Condition:
+                 Bool:
+                    aws:SecureTransport: 'false'
+
+
+#2.2 Elastic Compute Cloud (EC2)
+#2.2.1 Ensure EBS volume encryption is enabled (Manual)
+- name: c4m-dashboard-v200-aws-ebs-encrypted
+  resource: aws.ebs
+  metadata:
+    category: [security/encryption]
+    compliance:
+      - type: C4m-Dashboard
+        version: 2.0.0
+        control-mappings: ['2.2.1']
+    creator: ACME.Inc
+    severity: high
+    recommended_actions:
+        remediation:
+          - name: AWS Docs
+            description: |
+              Review and encrypt EBS volumes.
+            type: link
+            content: https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/EBSEncryption.html
+          - name: Policy Action
+            description: |
+              Enable encryption on EBS instance attached volumes identified by
+              the policies filters.
+            type: link
+            content: https://cloudcustodian.io/docs/aws/resources/ebs.html#aws-ebs-actions-encrypt-instance-volumes
+  description: |
+      This policy will identify EBS volumes which are not encrypted. Per AWS
+      security best practices, all EBS volumes should be encrypted to ensure
+      secure data storage and to help prevent unauthorized access.
+  filters:
+    - type: value
+      key: Encrypted
+      value: false
+
+
+#3 Logging
+#3.1 Ensure CloudTrail is enabled in all regions (Automated)
+- name: c4m-dashboard-v200-aws-cloudtrail-multi-region
+  resource: aws.cloudtrail
+  metadata:
+    category: [security/logging]
+    compliance:
+      - type: C4m-Dashboard
+        version: 2.0.0
+        control-mappings: ['3.1']
+    creator: ACME.Inc
+    severity: high
+    recommended_actions:
+        remediation:
+          - name: AWS Docs
+            description: |
+              Review and enable multi-region support for CloudTrail logs.
+            type: link
+            content: https://docs.aws.amazon.com/awscloudtrail/latest/userguide/receive-cloudtrail-log-files-from-multiple-regions.html
+          - name: Policy Action
+            description: |
+              Updates CloudTrail logs settings for CloudTrails identified by the
+              policies filters.
+            type: link
+            content: https://cloudcustodian.io/docs/aws/resources/cloudtrail.html#update-trail
+  description: |
+    This policy will identify CloudTrail Trails that are not currently setup for
+    all regions. Per AWS security best practices, CloudTrail should be enabled
+    in all regions so unauthorized activity can be detected and logged, no
+    matter where it occurs.
+  filters:
+      - IsMultiRegionTrail: false
+
+#3.2 Ensure CloudTrail log file validation is enabled (Automated)
+- name: c4m-dashboard-v200-aws-cloudtrail-log-file-validation
+  resource: aws.cloudtrail
+  metadata:
+    category: [security/logging]
+    compliance:
+      - type: C4m-Dashboard
+        version: 2.0.0
+        control-mappings: ['3.2']
+    creator: ACME.Inc
+    severity: medium
+    recommended_actions:
+        remediation:
+          - name: AWS Docs
+            description: |
+              Review and enable log file validation for CloudTrail logs.
+            type: link
+            content: https://docs.aws.amazon.com/awscloudtrail/latest/userguide/cloudtrail-log-file-validation-enabling.html
+          - name: Policy Action
+            description: |
+              Updates CloudTrail logs settings for CloudTrails identified by the
+              policies filters.
+            type: link
+            content: https://cloudcustodian.io/docs/aws/resources/cloudtrail.html#update-trail
+  description: |
+    This policy will identify CloudTrail Trails that are not currently setup for
+    log file validation. Per AWS security best practices, CloudTrail should have
+    log file validation enabled to provide log integrity.
+  filters:
+      - LogFileValidationEnabled: false
+
